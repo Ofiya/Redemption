@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harvest Thanksgiving Service - Order of Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h2 {
+            font-size: 1.5em;
+            font-weight: 300;
+            margin-bottom: 15px;
+        }
+
+        .header .date-time {
+            font-size: 1.1em;
+            opacity: 0.95;
+            margin-top: 10px;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .intro {
+            text-align: center;
+            margin-bottom: 40px;
+            font-style: italic;
+            color: #555;
+            font-size: 1.1em;
+        }
+
+        .order-list {
+            list-style: none;
+            counter-reset: service-counter;
+        }
+
+        .order-item {
+            counter-increment: service-counter;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .order-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .order-item::before {
+            content: counter(service-counter);
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .order-item h3 {
+            display: inline;
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        .order-item p {
+            margin-top: 10px;
+            margin-left: 50px;
+            color: #666;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 2px solid #667eea;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .header h2 {
+                font-size: 1.2em;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .order-item h3 {
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌾 Harvest Thanksgiving Service 🌾</h1>
+            <h2>Order of Service</h2>
+            <div class="date-time">
+                <p>Sunday, October 15, 2023 | 10:00 AM</p>
+                <p>Grace Community Church</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="intro">
+                "Give thanks to the Lord, for He is good; His love endures forever." - Psalm 107:1
+            </div>
+
+            <ul class="order-list">
+                <li class="order-item">
+                    <h3>Welcome & Call to Worship</h3>
+                    <p>Pastor John Smith</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Opening Hymn</h3>
+                    <p>"Come, Ye Thankful People, Come"</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Opening Prayer</h3>
+                    <p>Minister of Worship</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Scripture Reading</h3>
+                    <p>Deuteronomy 26:1-11 - Reader: Sarah Johnson</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Congregational Song</h3>
+                    <p>"Great Is Thy Faithfulness"</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Children's Message</h3>
+                    <p>The Blessings of Harvest - Mrs. Emily Davis</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Special Music</h3>
+                    <p>Church Choir - "For the Beauty of the Earth"</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Harvest Sermon</h3>
+                    <p>"A Heart of Gratitude" - Pastor John Smith</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Thanksgiving Offering</h3>
+                    <p>Collection of harvest gifts and tithes</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Prayers of Thanksgiving</h3>
+                    <p>Community prayer and intercession</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Closing Hymn</h3>
+                    <p>"Now Thank We All Our God"</p>
+                </li>
+
+                <li class="order-item">
+                    <h3>Benediction & Dismissal</h3>
+                    <p>Pastor John Smith</p>
+                </li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p><strong>Fellowship Lunch to Follow</strong></p>
+            <p>Join us in the church hall for a harvest potluck meal</p>
+            <p style="margin-top: 15px; font-size: 0.9em;">All are welcome! God bless you.</p>
+        </div>
+    </div>
+</body>
+</html>
