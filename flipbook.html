@@ -15,7 +15,7 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
-            padding-top: 70px;
+            padding-top: 55px;
             padding-bottom: 20px;
         }
 
@@ -27,27 +27,27 @@
             background: white;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 1000;
-            padding: 15px 20px;
+            padding: 8px 15px;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
 
         .header button {
             background: #667eea;
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 10px 16px;
-            font-size: 1em;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 0.9em;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 44px;
-            min-height: 44px;
+            min-width: 36px;
+            min-height: 36px;
         }
 
         .header button:hover:not(:disabled) {
@@ -63,22 +63,22 @@
         .page-indicator {
             color: #667eea;
             font-weight: 600;
-            font-size: 1em;
+            font-size: 0.85em;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .page-indicator input {
-            width: 50px;
+            width: 45px;
             border: 2px solid #667eea;
             background: white;
             color: #667eea;
             text-align: center;
             font-weight: 600;
-            font-size: 1em;
-            padding: 8px;
-            border-radius: 8px;
+            font-size: 0.85em;
+            padding: 5px;
+            border-radius: 6px;
             outline: none;
             -moz-appearance: textfield;
         }
@@ -102,8 +102,12 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             overflow: hidden;
-            scroll-margin-top: 90px;
+            scroll-margin-top: 75px;
             position: relative;
+        }
+
+        .page-number-badge {
+            display: none;
         }
 
         .page-container canvas {
@@ -129,24 +133,32 @@
 
         @media (max-width: 768px) {
             .header {
-                padding: 10px 15px;
-                gap: 10px;
+                padding: 6px 10px;
+                gap: 8px;
             }
 
             .header button {
-                padding: 8px 12px;
-                font-size: 0.9em;
-                min-width: 40px;
-                min-height: 40px;
+                padding: 5px 8px;
+                font-size: 0.85em;
+                min-width: 32px;
+                min-height: 32px;
             }
 
             .page-indicator {
-                font-size: 0.9em;
+                font-size: 0.8em;
             }
 
             .page-indicator input {
-                width: 45px;
-                padding: 6px;
+                width: 40px;
+                padding: 4px;
+            }
+            
+            body {
+                padding-top: 48px;
+            }
+            
+            .page-container {
+                scroll-margin-top: 60px;
             }
 
             .viewer-container {
@@ -240,11 +252,16 @@
             pageContainer.id = `page-${pageNum}`;
             pageContainer.dataset.pageNumber = pageNum;
             
+            const badge = document.createElement('div');
+            badge.className = 'page-number-badge';
+            badge.textContent = `Page ${pageNum}`;
+            
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             
+            pageContainer.appendChild(badge);
             pageContainer.appendChild(canvas);
             pdfViewer.appendChild(pageContainer);
             
