@@ -2,7 +2,12 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Serve static files from the current directory
+// Handle root route FIRST (before static middleware)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'flipbook.html'));
+});
+
+// Serve static files from the current directory (but root is already handled above)
 app.use(express.static(__dirname));
 
 // Set proper MIME types
@@ -13,11 +18,6 @@ app.use((req, res, next) => {
     res.type('application/pdf');
   }
   next();
-});
-
-// Redirect root to flipbook.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'flipbook.html'));
 });
 
 // Fallback to flipbook.html for any other routes
