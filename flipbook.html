@@ -188,6 +188,8 @@
         let pdfDoc = null;
         let totalPages = 0;
         let currentPageNum = 1;
+        let renderedPages = new Set();
+        let renderQueue = [];
         let isRendering = false;
 
         const pdfPath = 'Order-of-service/harvest-program.pdf';
@@ -207,70 +209,149 @@
 
         async function loadPDF() {
             try {
-                const loadingTask = pdfjsLib.getDocument(pdfPath);
+                // Check if PDF is cached
+                const cachedPdf = localStorage.getItem('pdfCacheKey');
+                const currentCacheKey = pdfPath + '_v1';
+                
+                const loadingTask = pdfjsLib.getDocument({
+                    url: pdfPath,
+                    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+                    cMapPacked: true,
+                    enableXfa: true,
+                    disableAutoFetch: false,
+                    disableStream: false
+                });
+                
                 pdfDoc = await loadingTask.promise;
                 totalPages = pdfDoc.numPages;
                 
                 totalPagesNum.textContent = totalPages;
                 pageInput.max = totalPages;
                 
-                // Render all pages
-                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                    await renderPage(pageNum);
-                }
+                // Create placeholder containers for all pages immediately
+                createPlaceholders();
+                
+                // Render first 3 pages immediately for fast initial display
+                await renderPage(1);
+                await renderPage(2);
+                await renderPage(3);
                 
                 loading.style.display = 'none';
                 updateNavigationButtons();
                 
-                // Observe pages for current page tracking
+                // Observe pages for lazy loading and current page tracking
                 observePages();
+                
+                // Render remaining pages in background
+                queueRemainingPages();
+                
+                // Cache the PDF
+                localStorage.setItem('pdfCacheKey', currentCacheKey);
             } catch (error) {
                 console.error('Error loading PDF:', error);
-                loading.textContent = 'Error loading PDF. Please refresh the page.';
-                loading.style.background = '#ff4444';
-                loading.style.color = 'white';
+                alert('Error loading PDF. Please refresh the page.');
             }
         }
 
+        function createPlaceholders() {
+            for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                const pageContainer = document.createElement('div');
+                pageContainer.className = 'page-container';
+                pageContainer.id = `page-${pageNum}`;
+                pageContainer.dataset.pageNumber = pageNum;
+                pageContainer.style.minHeight = '800px';
+                pageContainer.style.background = '#f0f0f0';
+                
+                const badge = document.createElement('div');
+                badge.className = 'page-number-badge';
+                badge.textContent = `Page ${pageNum}`;
+                
+                pageContainer.appendChild(badge);
+                pdfViewer.appendChild(pageContainer);
+            }
+        }
+
+        function queueRemainingPages() {
+            for (let pageNum = 4; pageNum <= totalPages; pageNum++) {
+                renderQueue.push(pageNum);
+            }
+            processRenderQueue();
+        }
+
+        async function processRenderQueue() {
+            if (isRendering || renderQueue.length === 0) return;
+            
+            isRendering = true;
+            while (renderQueue.length > 0) {
+                const pageNum = renderQueue.shift();
+                if (!renderedPages.has(pageNum)) {
+                    await renderPage(pageNum);
+                }
+                // Small delay to prevent blocking
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            isRendering = false;
+        }
+
         async function renderPage(pageNum) {
+            if (renderedPages.has(pageNum)) return;
+            
             const page = await pdfDoc.getPage(pageNum);
             const viewport = page.getViewport({ scale: 2.0 });
             
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'page-container';
-            pageContainer.id = `page-${pageNum}`;
-            pageContainer.dataset.pageNumber = pageNum;
+            const pageContainer = document.getElementById(`page-${pageNum}`);
+            if (!pageContainer) return;
+            
+            // Clear placeholder content
+            pageContainer.innerHTML = '';
+            pageContainer.style.minHeight = '';
+            pageContainer.style.background = 'white';
             
             const badge = document.createElement('div');
             badge.className = 'page-number-badge';
             badge.textContent = `Page ${pageNum}`;
             
             const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
+            const context = canvas.getContext('2d', { alpha: false });
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             
             pageContainer.appendChild(badge);
             pageContainer.appendChild(canvas);
-            pdfViewer.appendChild(pageContainer);
             
             await page.render({
                 canvasContext: context,
                 viewport: viewport
             }).promise;
+            
+            renderedPages.add(pageNum);
         }
 
         function observePages() {
             const options = {
                 root: null,
-                rootMargin: '-50% 0px -50% 0px',
+                rootMargin: '500px 0px 500px 0px', // Start rendering pages 500px before they're visible
                 threshold: 0
             };
 
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const pageNum = parseInt(entry.target.dataset.pageNumber);
+                    const pageNum = parseInt(entry.target.dataset.pageNumber);
+                    
+                    // Render page when it's about to come into view
+                    if (entry.isIntersecting && !renderedPages.has(pageNum)) {
+                        renderPage(pageNum);
+                        // Also render adjacent pages
+                        if (pageNum > 1 && !renderedPages.has(pageNum - 1)) {
+                            renderPage(pageNum - 1);
+                        }
+                        if (pageNum < totalPages && !renderedPages.has(pageNum + 1)) {
+                            renderPage(pageNum + 1);
+                        }
+                    }
+                    
+                    // Update current page
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
                         if (pageNum !== currentPageNum) {
                             currentPageNum = pageNum;
                             pageInput.value = pageNum;
@@ -368,6 +449,19 @@
                     scrollToPage(currentPageNum - 1);
                 }
             }
+        }
+
+        // Register service worker for caching
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered successfully');
+                    })
+                    .catch(err => {
+                        console.log('Service Worker registration failed:', err);
+                    });
+            });
         }
     </script>
 </body>
