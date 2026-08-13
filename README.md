@@ -2,7 +2,10 @@
 
 Interactive PDF flipchart viewer for the Redemption Parish Harvest & Thanksgiving Service.
 
-## 📁 Large File Notice
+## � Live Site
+https://jolly-pond-06d752e0f.azurestaticapps.net/flipbook.html
+
+## 📁 File Information
 
 The PDF file (`Order-of-service/harvest-program.pdf` - 68MB) is **NOT** stored in Git due to size limits.
 
