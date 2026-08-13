@@ -17,7 +17,7 @@ app.use((req, res, next) => {
 
 // Redirect root to flipbook.html
 app.get('/', (req, res) => {
-  res.redirect('/flipbook.html');
+  res.sendFile(path.join(__dirname, 'flipbook.html'));
 });
 
 // Fallback to flipbook.html for any other routes
