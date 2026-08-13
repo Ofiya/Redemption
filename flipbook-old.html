@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order of Service - Flipchart</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .flipbook-container {
+            perspective: 2000px;
+            position: relative;
+            width: 100vw;
+            height: calc(100vh - 100px);
+            margin: 0;
+            padding: 0;
+        }
+
+        .flipbook {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .page-wrapper {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: white;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            transition: transform 0.6s cubic-bezier(0.645, 0.045, 0.355, 1), 
+                        opacity 0.3s ease;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            border-radius: 10px;
+        }
+
+        .page-wrapper.current {
+            z-index: 2;
+            opacity: 1;
+            transform: rotateY(0deg) scale(1);
+        }
+
+        .page-wrapper.next {
+            z-index: 1;
+            opacity: 0;
+            transform: rotateY(-20deg) scale(0.95);
+        }
+
+        .page-wrapper.prev {
+            z-index: 1;
+            opacity: 0;
+            transform: rotateY(20deg) scale(0.95);
+        }
+
+        .page-wrapper.flipping-next {
+            z-index: 3;
+            animation: flipNext 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) forwards;
+        }
+
+        .page-wrapper.flipping-prev {
+            z-index: 3;
+            animation: flipPrev 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) forwards;
+        }
+
+        @keyframes flipNext {
+            0% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: rotateY(90deg) scale(0.9);
+                opacity: 0.5;
+            }
+            100% {
+                transform: rotateY(180deg) scale(0.85);
+                opacity: 0;
+            }
+        }
+
+        @keyframes flipPrev {
+            0% {
+                transform: rotateY(180deg) scale(0.85);
+                opacity: 0;
+            }
+            50% {
+                transform: rotateY(90deg) scale(0.9);
+                opacity: 0.5;
+            }
+            100% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .page {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 40px 20px 40px;
+            background: white;
+        }
+
+        .page canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            padding: 20px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 16px;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        .controls.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%) translateY(20px);
+        }
+
+        .controls button {
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
+            padding: 10px 16px;
+            border-radius: 50%;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.15s ease-out;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+        }
+
+        .controls button:hover:not(:disabled) {
+            background: rgba(102, 126, 234, 0.2);
+            transform: scale(1.05);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .controls button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .controls button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .page-indicator {
+            background: transparent;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.95em;
+            min-width: 80px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .page-indicator input {
+            width: 40px;
+            border: none;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95em;
+            padding: 4px 8px;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.3s;
+            -moz-appearance: textfield;
+        }
+
+        .page-indicator input::-webkit-outer-spin-button,
+        .page-indicator input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .page-indicator input:focus {
+            background: rgba(102, 126, 234, 0.2);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+
+        .page-indicator input:hover {
+            background: rgba(102, 126, 234, 0.15);
+        }
+
+        .page-navigation {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3em;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            user-select: none;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .page-navigation:hover:not(.disabled) {
+            background: white;
+            transform: translateY(-50%) translateX(0) scale(1.05);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .page-navi30px;
+        }
+
+        .page-navigation.right {
+            right: 3tion.right {
+            right: 20px;
+        }
+
+        .page-navigation.disabled {
+            opacity: 0.20 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-navigation.left {
+            left: -30px;
+        }
+
+        .page-navigation.right {
+            right: -30px;
+        }
+
+        .page-navigation.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .upload-area {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .upload-area h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .upload-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+   font-size: 0.95em;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .flipbook-container {
+                width: 100vw;
+                height: calc(100vh - 90px);
+            }
+
+            .controls {
+                gap: 10px;
+                padding: 6px 12px;
+                bottom: 20px;
+            }
+
+            .controls button {
+                width: 40px;
+                height: 40px;
+                font-size: 1em;
+            }
+
+            .page {
+                padding: 20px;
+            }
+
+            .page-navigation {
+                width: 42px;
+                height: 42px;
+                font-size: 1.2em;
+            }
+
+            .page-navigation.left {
+                left: 15px;
+            }
+
+            .page-navigation.right {
+                right: 15px;
+            }
+
+            .page-indicator {
+                font-size: 0.85em;
+                min-width: 70px;
+                padding: 6px 12
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="uploadSection" class="upload-area" style="display: none;">
+        <h2>Upload Your PDF</h2>
+        <p style="color: #666; margin-bottom: 20px;">Select the order of service PDF to begin</p>
+        <input type="file" id="pdfInput" accept="application/pdf">
+        <label for="pdfInput">
+            <span class="upload-button">Choose PDF File</span>
+        </label>
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+
+    <div id="flipbookSection" style="display: none; width: 100%;">
+        <div class="flipbook-container">
+            <div class="flipbook" id="flipbook">
+                <div class="page-wrapper current" id="currentPage">
+                    <div class="page" id="currentPageContent"></div>
+                </div>
+    </div>
+
+    <div class="controls">
+        <button id="firstPage" title="First Page">⏮</button>
+        <button id="prevPage" title="Previous Page">◀</button>
+        <div class="page-indicator">
+            <input type="number" id="pageInput" min="1" max="1" value="1" title="Enter page number">
+            <span>/ <span id="totalPagesNum">0</span></span>
+        </div>
+        <button id="nextPage" title="Next Page">▶</button>
+        <button id="lastPage" title="Last Page">⏭</button>
+    </div>
+
+    <div id="loading" class="loading" style="display: block;">
+        Loading PDF... Please wait
+    </div>
+
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let pdfDoc = null;
+        let currentPageNum = 1;
+        let totalPages = 0;
+        let isAnimating = false;
+        let renderedPages = {};
+
+        // Auto-load PDF on page load
+        const pdfPath = 'Order-of-service/harvest-program.pdf';
+        
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadPDF(pdfPath);
+        });
+
+        const uploadSection = document.getElementById('uploadSection');
+        const flipbookSection = document.getElementById('flipbookSection');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+        const pdfInput = document.getElementById('pdfInput');
+        const flipbook = document.getElementById('flipbook');
+        const pageInput = document.getElementById('pageInput');
+        
+        // Helper functions to get current elements
+        function getCurrentPageWrapper() {
+            return document.getElementById('currentPage');
+        }
+        
+        function getCurrentPageContent() {
+            return document.getElementById('currentPageContent');
+        }
+
+        // Handle page input change
+        pageInput.addEventListener('change', async (e) => {
+            const pageNum = parseInt(e.target.value);
+            if (pageNum >= 1 && pageNum <= totalPages && pageNum !== currentPageNum) {
+                currentPageNum = pageNum;
+                await renderCurrentPage();
+                updateControls();
+            } else {
+                // Reset to current page if invalid
+                pageInput.value = currentPageNum;
+            }
+        });
+
+        // Handle Enter key in page input
+        pageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.target.blur(); // This will trigger the change event
+            }
+        });
+
+        // Load PDF from URL or file
+        async function loadPDF(url) {
+            loading.style.display = 'block';
+            uploadSection.style.display = 'none';
+
+            try {
+                pdfDoc = await pdfjsLib.getDocument(url).promise;
+                totalPages = pdfDoc.numPages;
+                
+                document.getElementById('totalPagesNum').textContent = totalPages;
+                
+                await renderCurrentPage();
+                
+                loading.style.display = 'none';
+                flipbookSection.style.display = 'block';
+                
+                updateControls();
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                showError('Error loading PDF. Please check the file path.');
+                loading.style.display = 'none';
+                uploadSection.style.display = 'block';
+            }
+        }
+
+        // Handle PDF upload (fallback)
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') {
+                showError('Please select a valid PDF file');
+                return;
+            }
+
+            uploadSection.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+                totalPages = pdfDoc.numPages;
+                
+                document.getElementById('totalPagesNum').textContent = totalPages;
+                
+                await renderCurrentPage();
+                
+                loading.style.display = 'none';
+                flipbookSection.style.display = 'block';
+                
+                updateControls();
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                showError('Error loading PDF. Please try another file.');
+                loading.style.display = 'none';
+                uploadSection.style.display = 'block';
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        async function renderPage(pageNum, container) {
+            if (pageNum < 1 || pageNum > totalPages) {
+                container.innerHTML = '<div style="color: #999; font-size: 1.2em;">End of document</div>';
+                return;
+            }
+
+            // Check cache
+            if (renderedPages[pageNum]) {
+                container.innerHTML = '';
+                // For canvas, we need to copy the pixel data, not just clone the element
+                const cachedCanvas = renderedPages[pageNum];
+                const newCanvas = document.createElement('canvas');
+                newCanvas.width = cachedCanvas.width;
+                newCanvas.height = cachedCanvas.height;
+                const ctx = newCanvas.getContext('2d');
+                ctx.drawImage(cachedCanvas, 0, 0);
+                container.appendChild(newCanvas);
+                return;
+            }
+
+            try {
+                const page = await pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({scale: 1.5});
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                // Cache the rendered canvas
+                renderedPages[pageNum] = canvas;
+                
+                container.innerHTML = '';
+                container.appendChild(canvas);
+            } catch (error) {
+                console.error('Error rendering page:', error);
+                container.innerHTML = '<div style="color: red;">Error loading page</div>';
+            }
+        }
+
+        async function renderCurrentPage() {
+            await renderPage(currentPageNum, getCurrentPageContent());
+        }
+
+        async function flipToNext() {
+            if (isAnimating || currentPageNum >= totalPages) return;
+            
+            isAnimating = true;
+            
+            // Store reference to old wrapper
+            const oldWrapper = getCurrentPageWrapper();
+            
+            // Create new page element for animation
+            const newPageWrapper = document.createElement('div');
+            newPageWrapper.className = 'page-wrapper next';
+            const newPageContent = document.createElement('div');
+            newPageContent.className = 'page';
+            newPageWrapper.appendChild(newPageContent);
+            flipbook.appendChild(newPageWrapper);
+            
+            // Render next page
+            currentPageNum++;
+            await renderPage(currentPageNum, newPageContent);
+            
+            // Small delay to ensure DOM is ready
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            // Animate current page out and new page in
+            oldWrapper.classList.add('flipping-next');
+            newPageWrapper.classList.remove('next');
+            newPageWrapper.classList.add('flipping-prev');
+            
+            // Wait for animation to complete
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Remove old wrapper
+            if (flipbook.contains(oldWrapper)) {
+                flipbook.removeChild(oldWrapper);
+            }
+            
+            // Set new page as current - remove ALL animation classes
+            newPageWrapper.className = 'page-wrapper current';
+            newPageWrapper.id = 'currentPage';
+            newPageContent.id = 'currentPageContent';
+            
+            isAnimating = false;
+            updateControls();
+        }
+
+        async function flipToPrev() {
+            if (isAnimating || currentPageNum <= 1) return;
+            
+            isAnimating = true;
+            
+            // Store reference to old wrapper
+            const oldWrapper = getCurrentPageWrapper();
+            
+            // Create new page element for animation
+            const newPageWrapper = document.createElement('div');
+            newPageWrapper.className = 'page-wrapper prev';
+            const newPageContent = document.createElement('div');
+            newPageContent.className = 'page';
+            newPageWrapper.appendChild(newPageContent);
+            flipbook.insertBefore(newPageWrapper, oldWrapper);
+            
+            // Render previous page
+            currentPageNum--;
+            await renderPage(currentPageNum, newPageContent);
+            
+            // Small delay to ensure DOM is ready
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            // Animate
+            oldWrapper.classList.add('flipping-next');
+            newPageWrapper.classList.remove('prev');
+            newPageWrapper.classList.add('flipping-prev');
+            
+            // Wait for animation to complete
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Remove old wrapper
+            if (flipbook.contains(oldWrapper)) {
+                flipbook.removeChild(oldWrapper);
+            }
+            
+            // Set new page as current - remove ALL animation classes
+            newPageWrapper.className = 'page-wrapper current';
+            newPageWrapper.id = 'currentPage';
+            newPageContent.id = 'currentPageContent';
+            
+            isAnimating = false;
+            updateControls();
+        }
+
+        function updateControls() {
+            pageInput.value = currentPageNum;
+            pageInput.max = totalPages;
+            document.getElementById('prevPage').disabled = currentPageNum <= 1;
+            document.getElementById('firstPage').disabled = currentPageNum <= 1;
+            document.getElementById('nextPage').disabled = currentPageNum >= totalPages;
+            document.getElementById('lastPage').disabled = currentPageNum >= totalPages;
+        }
+
+        // Control buttons
+        document.getElementById('nextPage').addEventListener('click', flipToNext);
+        document.getElementById('prevPage').addEventListener('click', flipToPrev);
+        
+        document.getElementById('firstPage').addEventListener('click', async () => {
+            if (currentPageNum === 1 || isAnimating) return;
+            currentPageNum = 1;
+            await renderCurrentPage();
+            updateControls();
+        });
+
+        document.getElementById('lastPage').addEventListener('click', async () => {
+            if (currentPageNum === totalPages || isAnimating) return;
+            currentPageNum = totalPages;
+            await renderCurrentPage();
+            updateControls();
+        });
+
+        // Make functions accessible globally
+        window.flipToNext = flipToNext;
+        window.flipToPrev = flipToPrev;
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                flipToPrev();
+            }
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                flipToNext();
+            }
+        });
+
+        // Swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold) flipToNext();
+            if (touchEndX > touchStartX + swipeThreshold) flipToPrev();
+        }
+
+        // Auto-hide controls after 3 seconds of inactivity
+        let hideControlsTimer;
+        const controls = document.querySelector('.controls');
+
+        function resetHideTimer() {
+            // Show controls
+            controls.classList.remove('hidden');
+            
+            // Clear existing timer
+            clearTimeout(hideControlsTimer);
+            
+            // Set new timer to hide after 3 seconds
+            hideControlsTimer = setTimeout(() => {
+                controls.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Show controls on any screen interaction
+        document.addEventListener('click', resetHideTimer);
+        document.addEventListener('touchstart', resetHideTimer);
+        document.addEventListener('mousemove', resetHideTimer);
+        document.addEventListener('keydown', resetHideTimer);
+
+        // Start the auto-hide timer on page load
+        resetHideTimer();
+    </script>
+</body>
+</html>
