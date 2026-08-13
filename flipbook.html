@@ -149,23 +149,26 @@
             justify-content: center;
             align-items: center;
             gap: 12px;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            padding: 14px 28px;
-            border-radius: 60px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 8px 16px;
             z-index: 100;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        .controls.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%) translateY(20px);
         }
 
         .controls button {
-            background: transparent;
-            border: none;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.15);
             padding: 10px 16px;
             border-radius: 50%;
             font-size: 1.1em;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.15s ease-out;
             color: #667eea;
             display: flex;
             align-items: center;
@@ -175,8 +178,9 @@
         }
 
         .controls button:hover:not(:disabled) {
-            background: rgba(102, 126, 234, 0.1);
-            transform: scale(1.1);
+            background: rgba(102, 126, 234, 0.2);
+            transform: scale(1.05);
+            border-color: rgba(102, 126, 234, 0.3);
         }
 
         .controls button:disabled {
@@ -331,8 +335,8 @@
             }
 
             .controls {
-                gap: 8px;
-                padding: 12px 20px;
+                gap: 10px;
+                padding: 6px 12px;
                 bottom: 20px;
             }
 
@@ -726,6 +730,32 @@
             if (touchEndX < touchStartX - swipeThreshold) flipToNext();
             if (touchEndX > touchStartX + swipeThreshold) flipToPrev();
         }
+
+        // Auto-hide controls after 3 seconds of inactivity
+        let hideControlsTimer;
+        const controls = document.querySelector('.controls');
+
+        function resetHideTimer() {
+            // Show controls
+            controls.classList.remove('hidden');
+            
+            // Clear existing timer
+            clearTimeout(hideControlsTimer);
+            
+            // Set new timer to hide after 3 seconds
+            hideControlsTimer = setTimeout(() => {
+                controls.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Show controls on any screen interaction
+        document.addEventListener('click', resetHideTimer);
+        document.addEventListener('touchstart', resetHideTimer);
+        document.addEventListener('mousemove', resetHideTimer);
+        document.addEventListener('keydown', resetHideTimer);
+
+        // Start the auto-hide timer on page load
+        resetHideTimer();
     </script>
 </body>
 </html>
