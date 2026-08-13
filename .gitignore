@@ -1,3 +1,2 @@
-# Large PDF files
-Order-of-service/
-*.pdf
+# Large files excluded
+# Order-of-service folder now contains compressed PDF (17MB)
