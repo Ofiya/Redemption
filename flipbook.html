@@ -338,20 +338,12 @@
         function observePages() {
             const options = {
                 root: null,
-                rootMargin: '500px 0px 500px 0px', // Start rendering pages 500px before they're visible
-                threshold: [0, 0.25, 0.5, 0.75, 1.0]
+                rootMargin: '500px 0px 500px 0px',
+                threshold: 0
             };
 
             const observer = new IntersectionObserver((entries) => {
-                // Don't update page if zooming or recently zoomed (within 2 seconds)
-                const timeSinceZoom = Date.now() - zoomEndTime;
-                if (isZooming || timeSinceZoom < 2000) return;
-                
-                // Don't update if user hasn't actually scrolled
-                const currentScrollY = window.scrollY;
-                const scrollDelta = Math.abs(currentScrollY - lastScrollY);
-                if (scrollDelta < 100 && !isUserScrolling) return;
-                
+                // Only render pages when they come into view, never auto-update page number
                 entries.forEach(entry => {
                     const pageNum = parseInt(entry.target.dataset.pageNumber);
                     
@@ -366,27 +358,44 @@
                             renderPage(pageNum + 1);
                         }
                     }
-                    
-                    // Only update current page if:
-                    // 1. More than 70% of the page is visible
-                    // 2. User has actually scrolled
-                    // 3. Not during or recently after zoom
-                    if (entry.isIntersecting && 
-                        entry.intersectionRatio > 0.7 && 
-                        scrollDelta >= 100) {
-                        if (pageNum !== currentPageNum) {
-                            currentPageNum = pageNum;
-                            pageInput.value = pageNum;
-                            updateNavigationButtons();
-                            lastScrollY = currentScrollY;
-                        }
-                    }
                 });
             }, options);
 
             document.querySelectorAll('.page-container').forEach(page => {
                 observer.observe(page);
             });
+        }
+
+        // Update page number based on which page is most centered in viewport
+        function updateCurrentPageFromScroll() {
+            if (isZooming || Date.now() - zoomEndTime < 2000) return;
+            
+            const viewportCenter = window.scrollY + (window.innerHeight / 2);
+            let closestPage = 1;
+            let closestDistance = Infinity;
+            
+            // Find which page center is closest to viewport center
+            for (let i = 1; i <= totalPages; i++) {
+                const pageElement = document.getElementById(`page-${i}`);
+                if (pageElement) {
+                    const pageTop = pageElement.offsetTop;
+                    const pageHeight = pageElement.offsetHeight;
+                    const pageCenter = pageTop + (pageHeight / 2);
+                    const distance = Math.abs(viewportCenter - pageCenter);
+                    
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestPage = i;
+                    }
+                }
+            }
+            
+            // Only update if page actually changed
+            if (closestPage !== currentPageNum) {
+                currentPageNum = closestPage;
+                pageInput.value = closestPage;
+                updateNavigationButtons();
+            }
         }
 
         function scrollToPage(pageNum) {
@@ -398,17 +407,18 @@
                 // Clear zoom timer for manual navigation
                 zoomEndTime = 0;
                 
-                isUserScrolling = true; // Prevent observer from interfering
-                pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Immediately update page number for button navigation
                 currentPageNum = pageNum;
                 pageInput.value = pageNum;
                 updateNavigationButtons();
                 
-                // Update last scroll position and reset scrolling flag after scroll completes
+                // Scroll to the page
+                pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Update last scroll position after a brief delay
                 setTimeout(() => {
                     lastScrollY = window.scrollY;
-                    isUserScrolling = false;
-                }, 1000);
+                }, 800);
             }
         }
 
@@ -518,23 +528,27 @@
             }
         }, { passive: true });
 
-        // Detect scroll events
+        // Detect scroll events - only update page number when scrolling stops
         let scrollEndTimer;
         window.addEventListener('scroll', () => {
             const currentScrollY = window.scrollY;
             const scrollDelta = Math.abs(currentScrollY - lastScrollY);
             
             // Only mark as user scrolling if significant scroll occurred
-            // and not during/recently after zoom
             const timeSinceZoom = Date.now() - zoomEndTime;
             if (scrollDelta > 50 && timeSinceZoom > 1000 && !isZooming) {
                 isUserScrolling = true;
             }
             
+            // Clear previous timer
             clearTimeout(scrollEndTimer);
+            
+            // Wait for scrolling to stop before updating page number
             scrollEndTimer = setTimeout(() => {
                 isUserScrolling = false;
-            }, 200);
+                updateCurrentPageFromScroll();
+                lastScrollY = window.scrollY;
+            }, 300); // Wait 300ms after scroll stops
         }, { passive: true });
 
         // Detect gesturestart/gesturechange for iOS zoom
