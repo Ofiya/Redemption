@@ -106,20 +106,6 @@
             position: relative;
         }
 
-        .page-number-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(102, 126, 234, 0.9);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9em;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
         .page-container canvas {
             width: 100%;
             height: auto;
@@ -170,11 +156,6 @@
             .page-container {
                 margin-bottom: 15px;
                 border-radius: 4px;
-            }
-
-            .page-number-badge {
-                font-size: 0.8em;
-                padding: 4px 10px;
             }
         }
     </style>
@@ -259,16 +240,11 @@
             pageContainer.id = `page-${pageNum}`;
             pageContainer.dataset.pageNumber = pageNum;
             
-            const badge = document.createElement('div');
-            badge.className = 'page-number-badge';
-            badge.textContent = `Page ${pageNum}`;
-            
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             
-            pageContainer.appendChild(badge);
             pageContainer.appendChild(canvas);
             pdfViewer.appendChild(pageContainer);
             
