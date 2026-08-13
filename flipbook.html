@@ -196,6 +196,7 @@
         let scrollTimeout = null;
         let lastScrollY = 0;
         let zoomEndTime = 0;
+        let isManualNavigation = false;
 
         const pdfPath = 'Order-of-service/harvest-program.pdf';
         const loading = document.getElementById('loading');
@@ -368,7 +369,8 @@
 
         // Update page number based on which page is most centered in viewport
         function updateCurrentPageFromScroll() {
-            if (isZooming || Date.now() - zoomEndTime < 2000) return;
+            // Don't auto-update during zoom, manual navigation, or shortly after
+            if (isZooming || isManualNavigation || Date.now() - zoomEndTime < 2000) return;
             
             const viewportCenter = window.scrollY + (window.innerHeight / 2);
             let closestPage = 1;
@@ -404,6 +406,9 @@
             
             const pageElement = document.getElementById(`page-${pageNum}`);
             if (pageElement) {
+                // Mark as manual navigation to prevent auto-update
+                isManualNavigation = true;
+                
                 // Clear zoom timer for manual navigation
                 zoomEndTime = 0;
                 
@@ -415,10 +420,11 @@
                 // Scroll to the page
                 pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 
-                // Update last scroll position after a brief delay
+                // Clear manual navigation flag after scroll completes
                 setTimeout(() => {
+                    isManualNavigation = false;
                     lastScrollY = window.scrollY;
-                }, 800);
+                }, 1200);
             }
         }
 
