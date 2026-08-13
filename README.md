@@ -18,7 +18,7 @@ The PDF file (`Order-of-service/harvest-program.pdf` - 68MB) is **NOT** stored i
 The PDF should be hosted externally (Azure Blob Storage, CDN, etc.) and referenced in `flipbook.html`.
 
 ## 🚀 Live Site
-https://jolly-pond-06d752e0f.azurestaticapps.net/flipbook.html
+https://agreeable-forest-09f36f50f.7.azurestaticapps.net/flipbook.html
 
 ## Features
 - Auto-hide navigation (appears on tap/click)
