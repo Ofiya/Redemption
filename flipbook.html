@@ -194,6 +194,8 @@
         let isZooming = false;
         let isUserScrolling = false;
         let scrollTimeout = null;
+        let lastScrollY = 0;
+        let zoomEndTime = 0;
 
         const pdfPath = 'Order-of-service/harvest-program.pdf';
         const loading = document.getElementById('loading');
@@ -241,6 +243,9 @@
                 
                 loading.style.display = 'none';
                 updateNavigationButtons();
+                
+                // Initialize last scroll position
+                lastScrollY = window.scrollY;
                 
                 // Observe pages for lazy loading and current page tracking
                 observePages();
@@ -334,12 +339,18 @@
             const options = {
                 root: null,
                 rootMargin: '500px 0px 500px 0px', // Start rendering pages 500px before they're visible
-                threshold: 0
+                threshold: [0, 0.25, 0.5, 0.75, 1.0]
             };
 
             const observer = new IntersectionObserver((entries) => {
-                // Don't update page if user is zooming or actively scrolling
-                if (isZooming || isUserScrolling) return;
+                // Don't update page if zooming or recently zoomed (within 2 seconds)
+                const timeSinceZoom = Date.now() - zoomEndTime;
+                if (isZooming || timeSinceZoom < 2000) return;
+                
+                // Don't update if user hasn't actually scrolled
+                const currentScrollY = window.scrollY;
+                const scrollDelta = Math.abs(currentScrollY - lastScrollY);
+                if (scrollDelta < 100 && !isUserScrolling) return;
                 
                 entries.forEach(entry => {
                     const pageNum = parseInt(entry.target.dataset.pageNumber);
@@ -356,12 +367,18 @@
                         }
                     }
                     
-                    // Update current page only if more than 50% visible and not zooming
-                    if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+                    // Only update current page if:
+                    // 1. More than 70% of the page is visible
+                    // 2. User has actually scrolled
+                    // 3. Not during or recently after zoom
+                    if (entry.isIntersecting && 
+                        entry.intersectionRatio > 0.7 && 
+                        scrollDelta >= 100) {
                         if (pageNum !== currentPageNum) {
                             currentPageNum = pageNum;
                             pageInput.value = pageNum;
                             updateNavigationButtons();
+                            lastScrollY = currentScrollY;
                         }
                     }
                 });
@@ -373,19 +390,23 @@
         }
 
         function scrollToPage(pageNum) {
-            // Don't auto-scroll if user is zooming or actively interacting
+            // Don't auto-scroll if user is zooming
             if (isZooming) return;
             
             const pageElement = document.getElementById(`page-${pageNum}`);
             if (pageElement) {
+                // Clear zoom timer for manual navigation
+                zoomEndTime = 0;
+                
                 isUserScrolling = true; // Prevent observer from interfering
                 pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 currentPageNum = pageNum;
                 pageInput.value = pageNum;
                 updateNavigationButtons();
                 
-                // Reset scrolling flag after scroll completes
+                // Update last scroll position and reset scrolling flag after scroll completes
                 setTimeout(() => {
+                    lastScrollY = window.scrollY;
                     isUserScrolling = false;
                 }, 1000);
             }
@@ -473,15 +494,20 @@
                 // All touches ended
                 touchEndY = e.changedTouches[0].screenY;
                 
+                // Set zoom end timestamp
+                if (isZooming) {
+                    zoomEndTime = Date.now();
+                }
+                
                 // Reset zoom flag after a delay
                 setTimeout(() => {
                     isZooming = false;
-                }, 300);
+                }, 500);
                 
                 // Reset scrolling flag after a delay
                 setTimeout(() => {
                     isUserScrolling = false;
-                }, 500);
+                }, 1000);
                 
                 // Only handle swipe if not zooming
                 if (!isZooming && isSwiping) {
@@ -495,11 +521,20 @@
         // Detect scroll events
         let scrollEndTimer;
         window.addEventListener('scroll', () => {
-            isUserScrolling = true;
+            const currentScrollY = window.scrollY;
+            const scrollDelta = Math.abs(currentScrollY - lastScrollY);
+            
+            // Only mark as user scrolling if significant scroll occurred
+            // and not during/recently after zoom
+            const timeSinceZoom = Date.now() - zoomEndTime;
+            if (scrollDelta > 50 && timeSinceZoom > 1000 && !isZooming) {
+                isUserScrolling = true;
+            }
+            
             clearTimeout(scrollEndTimer);
             scrollEndTimer = setTimeout(() => {
                 isUserScrolling = false;
-            }, 150);
+            }, 200);
         }, { passive: true });
 
         // Detect gesturestart/gesturechange for iOS zoom
@@ -514,10 +549,11 @@
         }, { passive: true });
 
         document.addEventListener('gestureend', (e) => {
+            zoomEndTime = Date.now();
             setTimeout(() => {
                 isZooming = false;
                 isUserScrolling = false;
-            }, 300);
+            }, 500);
         }, { passive: true });
 
         function handleSwipe() {
